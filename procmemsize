@@ -200,7 +200,7 @@ o = OptionParser.new
 o.def_option('-p PID') {|pid|
   opts[:pid] = pid.to_i
 }
-o.parse!
+o.order!
 
 if opts[:pid]
   main_attach(opts[:pid])
