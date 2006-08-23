@@ -9,6 +9,7 @@ End
   exit status
 end
 
+require 'io/nonblock'
 require 'tsort'
 require 'optparse'
 
@@ -149,8 +150,10 @@ end
 
 def main_invoke(command, *args)
   pipe_r, pipe_w = IO.pipe
+  pipe_r.nonblock = true
+  pipe_w.nonblock = true
 
-  trap(:CHLD) { pipe_w.write_nonblock "a" }
+  trap(:CHLD) { pipe_w.syswrite "a" }
 
   command_pid = fork {
     exec [command, command], *args
@@ -163,7 +166,7 @@ def main_invoke(command, *args)
     while Process.waitpid(command_pid, Process::WNOHANG) == nil
       update_top(scanner, top)
       IO.select([pipe_r], nil, nil, 1)
-      pipe_r.read_nonblock(4096) rescue nil
+      pipe_r.sysread(4096) rescue nil
     end
     result = $?
   ensure
