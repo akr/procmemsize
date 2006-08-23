@@ -8,7 +8,7 @@ Tanaka Akira <akr@fsij.org>
 
 == Usage
 
-  procmemsize command...
+  procmemsize command [args...]
 
 procmemsize scans /proc/*/status and records maximum memory usage
 of processes invoked, directly or indirectly, from the command.
