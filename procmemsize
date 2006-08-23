@@ -159,14 +159,16 @@ def main_invoke(command, *args)
   scanner = ProcessScanner.new(command_pid)
   top = {}
 
-  while Process.waitpid(command_pid, Process::WNOHANG) == nil
-    update_top(scanner, top)
-    IO.select([pipe_r], nil, nil, 1)
-    pipe_r.read_nonblock(4096) rescue nil
+  begin
+    while Process.waitpid(command_pid, Process::WNOHANG) == nil
+      update_top(scanner, top)
+      IO.select([pipe_r], nil, nil, 1)
+      pipe_r.read_nonblock(4096) rescue nil
+    end
+    result = $?
+  ensure
+    output_result(top)
   end
-  result = $?
-
-  output_result(top)
 
   if result.to_i == 0
     exit 0
@@ -181,17 +183,19 @@ def main_attach(pid)
   scanner = ProcessScanner.new(pid)
   top = {}
 
-  while true
-    begin
-      Process.kill(0, pid)
-    rescue Errno::ESRCH
-      break
+  begin
+    while true
+      begin
+        Process.kill(0, pid)
+      rescue Errno::ESRCH
+        break
+      end
+      update_top(scanner, top)
+      sleep 1
     end
-    update_top(scanner, top)
-    sleep 1
+  ensure
+    output_result(top)
   end
-
-  output_result(top)
 end
 
 opts = {}
