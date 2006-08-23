@@ -8,6 +8,7 @@ End
 end
 
 require 'tsort'
+require 'optparse'
 
 STDOUT.sync = true
 
@@ -174,5 +175,36 @@ def main_invoke(command, *args)
   end
 end
 
-usage(false) if ARGV.empty?
-main_invoke(ARGV[0], *ARGV[1..-1])
+def main_attach(pid)
+  scanner = ProcessScanner.new(pid)
+  top = {}
+
+  while true
+    begin
+      Process.kill(0, pid)
+    rescue Errno::ESRCH
+      break
+    end
+    update_top(scanner, top)
+    sleep 1
+  end
+
+  output_result(top)
+end
+
+opts = {}
+
+o = OptionParser.new
+o.def_option('-p PID') {|pid|
+  opts[:pid] = pid.to_i
+}
+o.parse!
+
+if opts[:pid]
+  main_attach(opts[:pid])
+elsif !ARGV.empty?
+  main_invoke(ARGV[0], *ARGV[1..-1])
+else
+  usage(false)
+end
+
