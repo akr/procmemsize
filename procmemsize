@@ -137,22 +137,20 @@ def update_top(scanner, top)
   }
 end
 
-def main_invoke
+def main_invoke(command, *args)
   pipe_r, pipe_w = IO.pipe
 
   trap(:CHLD) { pipe_w.write_nonblock "a" }
 
   command_pid = fork {
-    exec [ARGV[0], ARGV[0]], *ARGV[1..-1]
+    exec [command, command], *args
   }
 
   scanner = ProcessScanner.new(command_pid)
   top = {}
 
   while Process.waitpid(command_pid, Process::WNOHANG) == nil
-
     update_top(scanner, top)
-
     IO.select([pipe_r], nil, nil, 1)
     pipe_r.read_nonblock(4096) rescue nil
   end
@@ -172,5 +170,8 @@ def main_invoke
   end
 end
 
+def main_attach
+end
+
 usage(false) if ARGV.empty?
-main_invoke
+main_invoke(ARGV[0], *ARGV[1..-1])
