@@ -111,28 +111,13 @@ class ProcessScanner
   end
 end
 
-usage(false) if ARGV.empty?
-
-pipe_r, pipe_w = IO.pipe
-
-trap(:CHLD) { pipe_w.write_nonblock "a" }
-
-command_pid = fork {
-  exec [ARGV[0], ARGV[0]], *ARGV[1..-1]
-}
-
-scanner = ProcessScanner.new(command_pid)
-
-top = {}
-
-while Process.waitpid(command_pid, Process::WNOHANG) == nil
+def update_top(scanner, top)
   begin
     interest = scanner.scan
   rescue TSort::Cyclic
     sleep 0.01
     retry
   end
-
   interest.each {|status|
     updated_keys = []
     status.each {|k,v|
@@ -150,6 +135,24 @@ while Process.waitpid(command_pid, Process::WNOHANG) == nil
       puts line
     end
   }
+end
+
+usage(false) if ARGV.empty?
+
+pipe_r, pipe_w = IO.pipe
+
+trap(:CHLD) { pipe_w.write_nonblock "a" }
+
+command_pid = fork {
+  exec [ARGV[0], ARGV[0]], *ARGV[1..-1]
+}
+
+scanner = ProcessScanner.new(command_pid)
+top = {}
+
+while Process.waitpid(command_pid, Process::WNOHANG) == nil
+
+  update_top(scanner, top)
 
   IO.select([pipe_r], nil, nil, 1)
   pipe_r.read_nonblock(4096) rescue nil
