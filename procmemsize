@@ -137,6 +137,13 @@ def update_top(scanner, top)
   }
 end
 
+def output_result(top)
+  top.keys.sort.each {|k|
+    v = top[k]
+    puts "#{k}: #{v}"
+  }
+end
+
 def main_invoke(command, *args)
   pipe_r, pipe_w = IO.pipe
 
@@ -156,10 +163,7 @@ def main_invoke(command, *args)
   end
   result = $?
 
-  top.keys.sort.each {|k|
-    v = top[k]
-    puts "#{k}: #{v}"
-  }
+  output_result(top)
 
   if result.to_i == 0
     exit 0
@@ -168,9 +172,6 @@ def main_invoke(command, *args)
   else
     exit 1
   end
-end
-
-def main_attach
 end
 
 usage(false) if ARGV.empty?
