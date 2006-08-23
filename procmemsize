@@ -137,37 +137,40 @@ def update_top(scanner, top)
   }
 end
 
+def main_invoke
+  pipe_r, pipe_w = IO.pipe
+
+  trap(:CHLD) { pipe_w.write_nonblock "a" }
+
+  command_pid = fork {
+    exec [ARGV[0], ARGV[0]], *ARGV[1..-1]
+  }
+
+  scanner = ProcessScanner.new(command_pid)
+  top = {}
+
+  while Process.waitpid(command_pid, Process::WNOHANG) == nil
+
+    update_top(scanner, top)
+
+    IO.select([pipe_r], nil, nil, 1)
+    pipe_r.read_nonblock(4096) rescue nil
+  end
+  result = $?
+
+  top.keys.sort.each {|k|
+    v = top[k]
+    puts "#{k}: #{v}"
+  }
+
+  if result.to_i == 0
+    exit 0
+  elsif result.exited?
+    exit result.exitstatus
+  else
+    exit 1
+  end
+end
+
 usage(false) if ARGV.empty?
-
-pipe_r, pipe_w = IO.pipe
-
-trap(:CHLD) { pipe_w.write_nonblock "a" }
-
-command_pid = fork {
-  exec [ARGV[0], ARGV[0]], *ARGV[1..-1]
-}
-
-scanner = ProcessScanner.new(command_pid)
-top = {}
-
-while Process.waitpid(command_pid, Process::WNOHANG) == nil
-
-  update_top(scanner, top)
-
-  IO.select([pipe_r], nil, nil, 1)
-  pipe_r.read_nonblock(4096) rescue nil
-end
-result = $?
-
-top.keys.sort.each {|k|
-  v = top[k]
-  puts "#{k}: #{v}"
-}
-
-if result.to_i == 0
-  exit 0
-elsif result.exited?
-  exit result.exitstatus
-else
-  exit 1
-end
+main_invoke
