@@ -13,7 +13,26 @@ require 'io/nonblock'
 require 'tsort'
 require 'optparse'
 
+require "fcntl"
+
 STDOUT.sync = true
+
+class IO
+  def close_on_exec
+    self.fcntl(Fcntl::F_GETFD) & Fcntl::FD_CLOEXEC != 0
+  end
+
+  def close_on_exec=(v)
+    flags = self.fcntl(Fcntl::F_GETFD)
+    if v
+      flags |= Fcntl::FD_CLOEXEC
+    else
+      flags &= ~Fcntl::FD_CLOEXEC
+    end
+    self.fcntl(Fcntl::F_SETFD, flags)
+    v
+  end
+end
 
 class Hash
   include TSort
@@ -155,9 +174,17 @@ def main_invoke(command, *args)
 
   trap(:CHLD) { pipe_w.syswrite "a" }
 
+  detect_exec_pipe_r, detect_exec_pipe_w = IO.pipe
+  detect_exec_pipe_w.close_on_exec = true
+
   command_pid = fork {
+    detect_exec_pipe_r.close
     exec [command, command], *args
   }
+
+  detect_exec_pipe_w.close
+  detect_exec_pipe_r.read
+  detect_exec_pipe_r.close
 
   scanner = ProcessScanner.new(command_pid)
   top = {}
