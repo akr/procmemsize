@@ -180,6 +180,13 @@ def main_invoke(command, *args)
 end
 
 def main_attach(pid)
+  begin
+    Process.kill(0, pid)
+  rescue Errno::ESRCH
+    STDERR.puts "no process #{pid}"
+    exit 1
+  end
+
   scanner = ProcessScanner.new(pid)
   top = {}
 
