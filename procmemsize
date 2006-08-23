@@ -187,6 +187,8 @@ def main_attach(pid)
     exit 1
   end
 
+  trap(:TERM) { exit 0 }
+
   scanner = ProcessScanner.new(pid)
   top = {}
 
