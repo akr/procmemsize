@@ -1,6 +1,11 @@
 #!/usr/bin/env ruby
-#
-# Usage: procmemsize command...
+
+def usage(status)
+  puts <<'End'
+Usage: procmemsize command [args...]
+End
+  exit status
+end
 
 require 'tsort'
 
@@ -105,6 +110,8 @@ class ProcessScanner
     raise "unexpected memsize format: #{str.inspect}"
   end
 end
+
+usage(false) if ARGV.empty?
 
 pipe_r, pipe_w = IO.pipe
 
