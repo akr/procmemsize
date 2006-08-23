@@ -2,7 +2,9 @@
 
 def usage(status)
   puts <<'End'
-Usage: procmemsize command [args...]
+Usage:
+  procmemsize command [args...]
+  procmemsize -p pid
 End
   exit status
 end
