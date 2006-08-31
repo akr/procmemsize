@@ -50,8 +50,8 @@ class ProcessScanner
 
   def scan
     entries = get_entries
-    status_hash = read_status(entries)
-    trace(status_hash)
+    info_hash = read_info(entries)
+    trace(info_hash)
   end
 
   def get_entries
@@ -71,11 +71,11 @@ class ProcessScanner
     entries
   end
 
-  def read_status(entries)
-    status_hash = {}
+  def read_info(entries)
+    info_hash = {}
     entries.each {|n|
       pid = n.to_i
-      status = {}
+      info = {}
       begin
         f = File.open("/proc/#{n}/status")
       rescue Errno::ENOENT
@@ -86,24 +86,24 @@ class ProcessScanner
           if /^([A-Za-z]+):\s*(.*)/ =~ line.chomp
             key = $1
             val = $2
-            status[key] = val
+            info[key] = val
           end
         }
       ensure
         f.close
       end
 
-      status_hash[pid] = status
+      info_hash[pid] = info
     }
-    status_hash
+    info_hash
   end
 
-  def trace(status_hash)
+  def trace(info_hash)
     parent_pid = {}
     children_pids = {}
-    status_hash.each {|pid, status|
-      if status['PPid']
-        ppid = status['PPid'].to_i
+    info_hash.each {|pid, info|
+      if info['PPid']
+        ppid = info['PPid'].to_i
         parent_pid[pid] = ppid
         children_pids[ppid] ||= {}
         children_pids[ppid][pid] = true
@@ -114,13 +114,13 @@ class ProcessScanner
     interest = []
     pids.reverse_each {|pid|
       if @roots.include? pid
-        interest << status_hash[pid]
+        interest << info_hash[pid]
       elsif !parent_pid[pid]
         @not_interest[pid] = true
       elsif @not_interest[parent_pid[pid]]
         @not_interest[pid] = true
       else
-        interest << status_hash[pid]
+        interest << info_hash[pid]
       end
     }
     interest
@@ -141,9 +141,9 @@ def update_top(scanner, top)
     sleep 0.01
     retry
   end
-  interest.each {|status|
+  interest.each {|info|
     updated_keys = []
-    status.each {|k,v|
+    info.each {|k,v|
       next if /\AVm/ !~ k
       if !top[k] || ProcessScanner.parse_memsize(top[k]) < ProcessScanner.parse_memsize(v)
         updated_keys << k
@@ -151,9 +151,9 @@ def update_top(scanner, top)
       end
     }
     if !updated_keys.empty?
-      line = "#{status['Name']} (#{status['Pid']}):"
+      line = "#{info['Name']} (#{info['Pid']}):"
       updated_keys.sort.each {|k|
-        line << " #{k}=#{status[k].gsub(/\s+/, '')}"
+        line << " #{k}=#{info[k].gsub(/\s+/, '')}"
       }
       puts line
     end
