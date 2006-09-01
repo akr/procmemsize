@@ -180,7 +180,7 @@ def update_top(scanner, top)
       if !top[k]
         top[k] = [curlog]
         updated_keys << k
-      elsif ProcessScanner.parse_memsize(top[k].first[0]) < ProcessScanner.parse_memsize(v) # && !top[k].include?(curlog)
+      else
         org = top[k].dup
         top[k].reject! {|l| [l.name, l.pid] == [curlog.name, curlog.pid] }
         top[k] << curlog
