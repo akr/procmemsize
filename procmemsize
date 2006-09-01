@@ -162,6 +162,9 @@ class ProcessScanner
   end
 end
 
+NumRecord = 10
+ProcLog = Struct.new("ProcLog", :memsize, :name, :pid, :cmdline)
+
 def update_top(scanner, top)
   begin
     interest = scanner.scan
@@ -173,9 +176,27 @@ def update_top(scanner, top)
     updated_keys = []
     info.each {|k,v|
       next if /\AVm/ !~ k
-      if !top[k] || ProcessScanner.parse_memsize(top[k]) < ProcessScanner.parse_memsize(v)
+      curlog = ProcLog.new(v, info['Name'], info['Pid'], info['cmdline'])
+      if !top[k]
+        top[k] = [curlog]
         updated_keys << k
-        top[k] = v
+      elsif ProcessScanner.parse_memsize(top[k].first[0]) < ProcessScanner.parse_memsize(v) # && !top[k].include?(curlog)
+        org = top[k].dup
+        top[k].reject! {|l| [l.name, l.pid] == [curlog.name, curlog.pid] }
+        top[k] << curlog
+        top[k] = top[k].sort_by {|l|
+          [ProcessScanner.parse_memsize(l.memsize),
+           l.name,
+           l.pid,
+           l.cmdline]
+        }
+        top[k].uniq!
+        if NumRecord < top[k].length
+          top[k].shift
+        end
+        if top[k] != org
+          updated_keys << k
+        end
       end
     }
     if !updated_keys.empty?
@@ -190,8 +211,9 @@ end
 
 def output_result(top)
   top.keys.sort.each {|k|
-    v = top[k]
-    puts "#{k}: #{v}"
+    top[k].each {|log|
+      puts "#{k}: #{log.name} (#{log.pid}) : #{log.cmdline}"
+    }
   }
 end
 
