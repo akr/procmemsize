@@ -34,6 +34,28 @@ class IO
   end
 end
 
+module Escape
+  module_function
+
+  def shell_word(str)
+    if str.empty?
+      "''"
+    elsif %r{\A[0-9A-Za-z+,./:=@_-]+\z} =~ str
+      str
+    else
+      result = ''
+      str.scan(/('+)|[^']+/) {
+        if $1
+          result << %q{\'} * $1.length
+        else
+          result << "'#{$&}'"
+        end
+      }
+      result
+    end
+  end
+end
+
 class Hash
   include TSort
   alias tsort_each_node each_key
@@ -77,21 +99,27 @@ class ProcessScanner
       pid = n.to_i
       info = {}
       begin
-        f = File.open("/proc/#{n}/status")
+        status = File.read("/proc/#{n}/status")
       rescue Errno::ENOENT
         next
       end
       begin
-        f.each_line {|line|
-          if /^([A-Za-z]+):\s*(.*)/ =~ line.chomp
-            key = $1
-            val = $2
-            info[key] = val
-          end
-        }
-      ensure
-        f.close
+        cmdline = File.read("/proc/#{n}/cmdline")
+      rescue Errno::ENOENT
+        next
       end
+
+      status.each_line {|line|
+        if /^([A-Za-z]+):\s*(.*)/ =~ line.chomp
+          key = $1
+          val = $2
+          info[key] = val
+        end
+      }
+
+      words = []
+      cmdline.scan(/([^\0]*)\0/) { words << Escape.shell_word($1) }
+      info['cmdline'] = words.join(' ')
 
       info_hash[pid] = info
     }
