@@ -212,7 +212,7 @@ end
 def output_result(top)
   top.keys.sort.each {|k|
     top[k].each {|log|
-      puts "#{k}: #{log.name} (#{log.pid}) : #{log.cmdline}"
+      puts "#{k}: #{log.memsize} : #{log.name} (#{log.pid}) : #{log.cmdline}"
     }
   }
 end
