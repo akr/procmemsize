@@ -254,7 +254,11 @@ def main_invoke(command, *args)
     exit 0
   elsif result.exited?
     exit result.exitstatus
+  elsif result.signaled?
+    puts result.inspect.sub(/\A.*?,/, '').sub(/>/, '')
+    exit 1
   else
+    p result
     exit 1
   end
 end
