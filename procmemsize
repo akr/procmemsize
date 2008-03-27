@@ -243,7 +243,7 @@ def main_invoke(command, *args)
     while Process.waitpid(command_pid, Process::WNOHANG) == nil
       update_top(scanner, top)
       IO.select([pipe_r], nil, nil, 0.1)
-      pipe_r.sysread(4096) rescue nil
+      pipe_r.read_nonblock(4096) rescue nil
     end
     result = $?
   ensure
