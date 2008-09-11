@@ -182,8 +182,22 @@ def update_top(scanner, top)
         updated_keys << k
       else
         org = top[k].dup
-        top[k].reject! {|l| [l.name, l.pid] == [curlog.name, curlog.pid] }
-        top[k] << curlog
+        newprocess = true
+        top[k].map! {|l|
+          if [l.name, l.pid] == [curlog.name, curlog.pid]
+            newprocess = false
+            if ProcessScanner.parse_memsize(l.memsize) < ProcessScanner.parse_memsize(curlog.memsize)
+              curlog
+            else
+              l
+            end
+          else
+            l
+          end
+        }
+        if newprocess
+          top[k] << curlog
+        end
         top[k] = top[k].sort_by {|l|
           [ProcessScanner.parse_memsize(l.memsize),
            l.name,
