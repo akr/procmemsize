@@ -100,12 +100,12 @@ class ProcessScanner
       info = {}
       begin
         status = File.read("/proc/#{n}/status")
-      rescue Errno::ENOENT
+      rescue Errno::ENOENT, Errno::ESRCH
         next
       end
       begin
         cmdline = File.read("/proc/#{n}/cmdline")
-      rescue Errno::ENOENT
+      rescue Errno::ENOENT, Errno::ESRCH
         next
       end
 
