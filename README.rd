@@ -1,6 +1,6 @@
 = procmemsize
 
-watch the memory size of processes in specified command on Linux.
+watch the memory size of processes in specified command on GNU/Linux.
 
 == Author
 
